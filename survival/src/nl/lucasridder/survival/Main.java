@@ -34,7 +34,12 @@ public class Main extends JavaPlugin {
         Player player = e.getPlayer();
         String name = player.getName();
 
-
+        //leave message
+        if(player.hasPermission("survival.admin")) {
+            e.setJoinMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GREEN + "+" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
+        } else {
+            e.setJoinMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GREEN + "+" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
+        }
     }
 
     //Leave
@@ -44,11 +49,11 @@ public class Main extends JavaPlugin {
         Player player = e.getPlayer();
         String name = player.getName();
 
-        //join message
+        //leave message
         if(player.hasPermission("survival.admin")) {
-            e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GREEN + "+" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
+            e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_RED + "-" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
         } else {
-
+            e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_RED + "-" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
         }
 
     }
