@@ -1,0 +1,20 @@
+main: nl.lucasridder.survival.Main
+name: survival
+version: 1.0
+author: LucasRidder
+api-version: 1.15
+
+commands:
+ gamemode:
+  aliases: gm
+  usage: "Usage: /<command> [survival|creative|adventure|spectator|0|1|2|3] ([player])"
+ survival:
+ lobby:
+  aliases: hub
+ lock:
+  aliases: lockdown
+  usage: "/<command> (reden)"
+ setspawn:
+  usage: "/<command>"
+ fly:
+  usage: "/<command> ([player])"
