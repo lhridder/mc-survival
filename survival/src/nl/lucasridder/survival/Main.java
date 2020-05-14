@@ -9,6 +9,7 @@ import org.bukkit.craftbukkit.libs.org.apache.commons.io.output.ByteArrayOutputS
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -16,6 +17,7 @@ import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class Main extends JavaPlugin implements Listener, PluginMessageListener {
 
@@ -84,9 +86,9 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         //join message
         if (player.hasPermission("survival.admin")) {
             e.setJoinMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GREEN + "+" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
-        } else if (!player.hasPlayedBefore()) {
+            } else if (!player.hasPlayedBefore()) {
             e.setJoinMessage(ChatColor.DARK_GRAY + "Welkom " + ChatColor.RESET + name);
-        } else {
+            } else {
             e.setJoinMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GREEN + "+" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
         }
 
@@ -336,11 +338,25 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         return true;
     }
 
+    //Chat
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent e) {
+        Player player = e.getPlayer();
+        String name = e.getPlayer().getName();
+        String message = e.getMessage();
+        if(player.isOp()) {
+            e.setFormat(ChatColor.GOLD + name + ChatColor.DARK_GRAY + " >> " + ChatColor.RESET + message);
+        } else {
+            e.setFormat(ChatColor.GRAY + name + ChatColor.DARK_GRAY + " >> " + ChatColor.RESET + message);
+        }
+    }
+
     //Listener bungee
     @SuppressWarnings("NullableProblems")
     @Override
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
         if (!channel.equals("BungeeCord")) {
+            System.out.println(Arrays.toString(message));
         }
         }
 
