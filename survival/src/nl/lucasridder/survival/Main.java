@@ -3,6 +3,7 @@ package nl.lucasridder.survival;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.libs.org.apache.commons.io.output.ByteArrayOutputStream;
@@ -14,15 +15,19 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.*;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class Main extends JavaPlugin implements Listener, PluginMessageListener {
 
     boolean lock;
     String lockreason;
+    HashMap<Player, String> PlayerBoolean = new HashMap<Player, String>();
 
     //send server
     public void sendServer(String server, Player player) {
@@ -37,6 +42,59 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
             e.printStackTrace();
         }
         player.sendPluginMessage(this, "BungeeCord", b.toByteArray());
+        PlayerBoolean.put(player, server);
+    }
+
+    //update scoreboard
+    public void updateScoreboard(Player player) {
+        ScoreboardManager manager = Bukkit.getScoreboardManager();
+        Scoreboard b = manager.getNewScoreboard();
+
+        String top = this.getConfig().getString("scoreboard.top");
+        Objective o = b.registerNewObjective("Gold", "", ChatColor.BOLD + "" + ChatColor.BLUE + top);
+        o.setDisplaySlot(DisplaySlot.SIDEBAR);
+
+        Score score5 = o.getScore(ChatColor.YELLOW + "");
+        score5.setScore(5);
+
+        Score score4 = o.getScore(ChatColor.YELLOW + "Welkom, " + ChatColor.GRAY + player.getName());
+        score4.setScore(4);
+
+        Score score3 = o.getScore(ChatColor.BOLD + "");
+        score3.setScore(3);
+
+        int spelers = getServer().getOnlinePlayers().size();
+        Score score2 = o.getScore(ChatColor.GOLD + "Aantal spelers online: " + ChatColor.RED + spelers);
+        score2.setScore(2);
+
+        Score score1 = o.getScore("");
+        score1.setScore(1);
+
+        String name = this.getConfig().getString("scoreboard.name");
+        Score score0 = o.getScore(ChatColor.BOLD + "" + ChatColor.GREEN + name);
+        score0.setScore(0);
+
+        player.setScoreboard(b);
+    }
+
+    //clear chat
+    public void clearChat(Player player) {
+        int x = 0;
+        while (x < 20){
+            player.sendMessage("");
+            x = x + 1;
+        }
+    }
+
+    //motd
+    public void motd(Player player) {
+        String name = player.getName();
+        clearChat(player);
+        player.sendMessage(ChatColor.DARK_GRAY + "Welkom, " + ChatColor.GOLD + name);
+        player.sendMessage(ChatColor.BLUE + "Beschikbare servers: ");
+        player.sendMessage(ChatColor.GOLD + "/survival" + ChatColor.DARK_GRAY + " en " + ChatColor.GOLD + "/minigames");
+        player.sendMessage("");
+        player.sendMessage("");
     }
 
     //Start-up
@@ -82,7 +140,6 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
             }
         }
 
-
         //join message
         if (player.hasPermission("survival.admin")) {
             e.setJoinMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GREEN + "+" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
@@ -92,24 +149,19 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
             e.setJoinMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GREEN + "+" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
         }
 
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage("");
-        player.sendMessage(ChatColor.DARK_GRAY + "Welkom, " + ChatColor.GOLD + name + ChatColor.DARK_GRAY + " op de survival server!");
-        player.sendMessage(ChatColor.BLUE + "Beschikbare andere servers: ");
-        player.sendMessage(ChatColor.GOLD + "/hub" + ChatColor.DARK_GRAY + " en " + ChatColor.GOLD + "/minigames");
-        player.sendMessage("");
-        player.sendMessage("");
+        //scoreboard
+        new BukkitRunnable() {
+            public void run() {
+                if (!player.isOnline()) this.cancel();
+                else {
+                    updateScoreboard(player);
+                }
+
+            }
+        }.runTaskTimer(this, 20, 20);
+
+        //motd message
+        motd(player);
     }
 
     //Leave
@@ -119,16 +171,27 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         Player player = e.getPlayer();
         String name = player.getName();
 
-        //leave message
-        if (player.hasPermission("survival.admin")) {
-            e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_RED + "-" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
+        //bungee check
+        String server = PlayerBoolean.get(player);
+        if (server != null) {
+            if (player.hasPermission("survival.admin")) {
+                e.setQuitMessage(ChatColor.RED + name + ChatColor.DARK_RED + " -> " + ChatColor.GRAY + server);
+            } else {
+                e.setQuitMessage(ChatColor.WHITE + name + ChatColor.DARK_RED + " -> " + ChatColor.GRAY + server);
+            }
+            PlayerBoolean.remove(player);
         } else {
-            e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_RED + "-" + ChatColor.DARK_GRAY + "] " + ChatColor.RESET + name);
+            //leave message
+            if (player.hasPermission("survival.admin")) {
+                e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_RED + "-" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
+            } else {
+                e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_RED + "-" + ChatColor.DARK_GRAY + "] " + ChatColor.RESET + name);
+            }
         }
-
     }
 
     //commands
+    @SuppressWarnings("NullableProblems")
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         //gamemode
@@ -307,6 +370,27 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
             sender.sendMessage(ChatColor.DARK_RED + "Geen toegang tot dit commando");
         }
 
+        //spawn
+        if(cmd.getName().equalsIgnoreCase("spawn")) {
+            Player player = (Player) sender;
+            if (!(sender instanceof Player)) {
+                //zeg het
+                sender.sendMessage(ChatColor.RED + "Je bent geen speler");
+                return true;
+            }
+            //spawn loc
+            sender.sendMessage(ChatColor.GREEN + "Aan het teleporteren...");
+            try {
+                int x = this.getConfig().getInt("spawn.x");
+                int y = this.getConfig().getInt("spawn.y");
+                int z = this.getConfig().getInt("spawn.z");
+                Location loc = new Location(player.getWorld(), x, y, z);
+                player.teleport(loc);
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        }
+
         //lock
         if(cmd.getName().equalsIgnoreCase("lock")) {
             if(sender.hasPermission("survival.admin")) {
@@ -335,6 +419,33 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
                 sender.sendMessage(ChatColor.DARK_RED + "Geen toegang tot dit commando");
             }
         }
+
+        //motd
+        if(cmd.getName().equalsIgnoreCase("motd")) {
+            if(!(sender instanceof Player)) {
+                //zeg het
+                sender.sendMessage(ChatColor.RED + "Je bent geen speler");
+                return true;
+            } else {
+                motd((Player) sender);
+            }
+        }
+
+        //stop
+        if(cmd.getName().equalsIgnoreCase("stop")) {
+            sender.sendMessage(ChatColor.GREEN + "Kicking all players...");
+            for(Player players : this.getServer().getOnlinePlayers()) {
+                if(!players.equals(sender)) {
+                    players.kickPlayer(ChatColor.GRAY + "De server wordt momenteel herstart" + "\n" +
+                            ChatColor.BLUE + "wacht even met opnieuw joinen" + "\n" +
+                            ChatColor.YELLOW + "Zie actuele status via: " + ChatColor.AQUA + "https://www.discord.gg/AzVCaQE");
+                }
+                sender.sendMessage(ChatColor.GREEN + "Stopping server...");
+                System.out.println("[HUB]" + ChatColor.DARK_RED + " stopping server...");
+                Bukkit.shutdown();
+            }
+
+        }
         return true;
     }
 
@@ -345,9 +456,9 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         String name = e.getPlayer().getName();
         String message = e.getMessage();
         if(player.isOp()) {
-            e.setFormat(ChatColor.GOLD + name + ChatColor.DARK_GRAY + " >> " + ChatColor.RESET + message);
+            e.setFormat(ChatColor.GOLD + name + ChatColor.DARK_GRAY + " » " + ChatColor.RESET + message);
         } else {
-            e.setFormat(ChatColor.GRAY + name + ChatColor.DARK_GRAY + " >> " + ChatColor.RESET + message);
+            e.setFormat(ChatColor.GRAY + name + ChatColor.DARK_GRAY + " » " + ChatColor.RESET + message);
         }
     }
 

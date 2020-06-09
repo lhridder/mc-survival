@@ -2,3 +2,6 @@ spawn:
  x: ''
  y: ''
  z: ''
+scoreboard:
+ top: ''
+ name: ''
