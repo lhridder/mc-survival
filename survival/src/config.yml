@@ -3,5 +3,5 @@ spawn:
  y: ''
  z: ''
 scoreboard:
- top: ''
- name: ''
+ top: 'hutsserver'
+ name: 'play.huts.nl'

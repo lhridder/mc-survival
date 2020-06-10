@@ -8,7 +8,7 @@ commands:
  gamemode:
   aliases: gm
   usage: "Usage: /<command> [survival|creative|adventure|spectator|0|1|2|3] ([player])"
- survival:
+ minigames:
  lobby:
   aliases: hub
  lock:

@@ -7,9 +7,14 @@ import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.libs.org.apache.commons.io.output.ByteArrayOutputStream;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -17,7 +22,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.*;
+import org.bukkit.util.Vector;
 
+import javax.swing.border.Border;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -28,6 +35,13 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
     boolean lock;
     String lockreason;
     HashMap<Player, String> PlayerBoolean = new HashMap<Player, String>();
+
+    //check if block is in spawn
+    public boolean checkSpawn(Location location) {
+        double x = location.getBlock().getX();
+        double z = location.getBlock().getZ();
+        return x >= 320 && z >= -831 && x <= 356 && z <= -795;
+    }
 
     //send server
     public void sendServer(String server, Player player) {
@@ -92,7 +106,7 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         clearChat(player);
         player.sendMessage(ChatColor.DARK_GRAY + "Welkom, " + ChatColor.GOLD + name);
         player.sendMessage(ChatColor.BLUE + "Beschikbare servers: ");
-        player.sendMessage(ChatColor.GOLD + "/survival" + ChatColor.DARK_GRAY + " en " + ChatColor.GOLD + "/minigames");
+        player.sendMessage(ChatColor.GOLD + "/hub" + ChatColor.DARK_GRAY + " en " + ChatColor.GOLD + "/minigames");
         player.sendMessage("");
         player.sendMessage("");
     }
@@ -287,19 +301,23 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
                 sender.sendMessage(ChatColor.RED + "Je bent geen speler");
                 return true;
             } else {
-                Player player = (Player) sender;
-                int x = player.getLocation().getBlockX();
-                int y = player.getLocation().getBlockY();
-                int z = player.getLocation().getBlockZ();
-                float yaw = player.getLocation().getYaw();
-                float pitch = player.getLocation().getPitch();
-                this.getConfig().set("spawn.x", x);
-                this.getConfig().set("spawn.y", y);
-                this.getConfig().set("spawn.z", z);
-                this.getConfig().set("spawn.yaw", yaw);
-                this.getConfig().set("spawn.pitch", pitch);
-                this.saveConfig();
-                sender.sendMessage(ChatColor.GREEN + "Spawn set");
+                if(sender.isOp()) {
+                    Player player = (Player) sender;
+                    int x = player.getLocation().getBlockX();
+                    int y = player.getLocation().getBlockY();
+                    int z = player.getLocation().getBlockZ();
+                    float yaw = player.getLocation().getYaw();
+                    float pitch = player.getLocation().getPitch();
+                    this.getConfig().set("spawn.x", x);
+                    this.getConfig().set("spawn.y", y);
+                    this.getConfig().set("spawn.z", z);
+                    this.getConfig().set("spawn.yaw", yaw);
+                    this.getConfig().set("spawn.pitch", pitch);
+                    this.saveConfig();
+                    sender.sendMessage(ChatColor.GREEN + "Spawn set");
+                } else {
+                    sender.sendMessage(ChatColor.DARK_RED + "Geen toegang tot dit commando");
+                }
             }
         }
 
@@ -364,11 +382,9 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
                     //teveel argumenten
                     if(args.length >= 1) { sender.sendMessage(ChatColor.RED + "/fly (speler)"); }
 
+                    }
                 }
             }
-        } else {
-            sender.sendMessage(ChatColor.DARK_RED + "Geen toegang tot dit commando");
-        }
 
         //spawn
         if(cmd.getName().equalsIgnoreCase("spawn")) {
@@ -411,6 +427,14 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
                         sender.sendMessage(ChatColor.GRAY + "Lockdown: " + ChatColor.GOLD + lock);
                         sender.sendMessage(ChatColor.GRAY + "Reden: " + ChatColor.GOLD + this.lockreason);
                     }
+                    //kick
+                    for (Player players : this.getServer().getOnlinePlayers()) {
+                        if(!players.isOp()) {
+                            players.kickPlayer(ChatColor.GRAY + "De server is momenteel in lockdown vanwege:" + "\n" +
+                            ChatColor.BLUE + this.lockreason + "\n" +
+                            ChatColor.YELLOW + "Zie actuele status via: " + ChatColor.AQUA + "https://www.discord.gg/AzVCaQE");
+                        }
+                    }
                 } else {
                     this.lock = false;
                     sender.sendMessage(ChatColor.GREEN + "Lockdown opgeheven");
@@ -433,16 +457,20 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
 
         //stop
         if(cmd.getName().equalsIgnoreCase("stop")) {
-            sender.sendMessage(ChatColor.GREEN + "Kicking all players...");
-            for(Player players : this.getServer().getOnlinePlayers()) {
-                if(!players.equals(sender)) {
-                    players.kickPlayer(ChatColor.GRAY + "De server wordt momenteel herstart" + "\n" +
-                            ChatColor.BLUE + "wacht even met opnieuw joinen" + "\n" +
-                            ChatColor.YELLOW + "Zie actuele status via: " + ChatColor.AQUA + "https://www.discord.gg/AzVCaQE");
+            if(sender.isOp()) {
+                sender.sendMessage(ChatColor.GREEN + "Kicking all players...");
+                for (Player players : this.getServer().getOnlinePlayers()) {
+                    if (!players.equals(sender)) {
+                        players.kickPlayer(ChatColor.GRAY + "De server wordt momenteel herstart" + "\n" +
+                                ChatColor.BLUE + "wacht even met opnieuw joinen" + "\n" +
+                                ChatColor.YELLOW + "Zie actuele status via: " + ChatColor.AQUA + "https://www.discord.gg/AzVCaQE");
+                    }
+                    sender.sendMessage(ChatColor.GREEN + "Stopping server...");
+                    System.out.println("[HUB]" + ChatColor.DARK_RED + " stopping server...");
+                    Bukkit.shutdown();
                 }
-                sender.sendMessage(ChatColor.GREEN + "Stopping server...");
-                System.out.println("[HUB]" + ChatColor.DARK_RED + " stopping server...");
-                Bukkit.shutdown();
+            } else {
+                sender.sendMessage(ChatColor.DARK_RED + "Geen toegang tot dit commando");
             }
 
         }
@@ -459,6 +487,40 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
             e.setFormat(ChatColor.GOLD + name + ChatColor.DARK_GRAY + " » " + ChatColor.RESET + message);
         } else {
             e.setFormat(ChatColor.GRAY + name + ChatColor.DARK_GRAY + " » " + ChatColor.RESET + message);
+        }
+    }
+
+    //break
+    @EventHandler
+    public void onBreak(BlockBreakEvent e) {
+        Location location = e.getBlock().getLocation();
+        Player player = e.getPlayer();
+        if(checkSpawn(location)) {
+            if(!player.isOp()) {
+                e.setCancelled(true);
+                player.sendMessage(ChatColor.RED + "Hey!, je mag in de spawn niks veranderen!");
+            }
+        }
+    }
+
+    //Block place
+    @EventHandler
+    public void onPlace(BlockPlaceEvent e) {
+        Location location = e.getBlock().getLocation();
+        Player player = e.getPlayer();
+        if(checkSpawn(location)) {
+            if(!player.isOp()) {
+                e.setCancelled(true);
+                player.sendMessage(ChatColor.RED + "Hey!, je mag in de spawn niks veranderen!");
+            }
+        }
+    }
+
+    //No Damage
+    @EventHandler
+    public void onPvp(EntityDamageByEntityEvent e) {
+        if(e.getEntity() instanceof Player && e.getDamager() instanceof Player) {
+            if(checkSpawn(e.getEntity().getLocation())) e.setCancelled(true);
         }
     }
 
