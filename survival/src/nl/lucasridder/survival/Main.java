@@ -8,7 +8,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.libs.org.apache.commons.io.output.ByteArrayOutputStream;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,9 +24,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.*;
-import org.bukkit.util.Vector;
 
-import javax.swing.border.Border;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -425,21 +422,20 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         //spawn
         if(cmd.getName().equalsIgnoreCase("spawn")) {
             Player player = (Player) sender;
-            if (!(sender instanceof Player)) {
-                //zeg het
+            if (sender != null) {
+                sender.sendMessage(ChatColor.GREEN + "Aan het teleporteren...");
+                try {
+                    int x = this.getConfig().getInt("spawn.x");
+                    int y = this.getConfig().getInt("spawn.y");
+                    int z = this.getConfig().getInt("spawn.z");
+                    Location loc = new Location(player.getWorld(), x, y, z);
+                    player.teleport(loc);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            } else {
                 sender.sendMessage(ChatColor.RED + "Je bent geen speler");
                 return true;
-            }
-            //spawn loc
-            sender.sendMessage(ChatColor.GREEN + "Aan het teleporteren...");
-            try {
-                int x = this.getConfig().getInt("spawn.x");
-                int y = this.getConfig().getInt("spawn.y");
-                int z = this.getConfig().getInt("spawn.z");
-                Location loc = new Location(player.getWorld(), x, y, z);
-                player.teleport(loc);
-            } catch (Exception e1) {
-                e1.printStackTrace();
             }
         }
 
@@ -491,14 +487,16 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         //stop
         if(cmd.getName().equalsIgnoreCase("stop")) {
             if(sender.isOp()) {
-                sender.sendMessage(ChatColor.GREEN + "Kicking all players...");
-                for (Player players : this.getServer().getOnlinePlayers()) {
-                    players.kickPlayer(ChatColor.GRAY + "De server wordt momenteel herstart" + "\n" +
-                        ChatColor.BLUE + "wacht even met opnieuw joinen" + "\n" +
-                        ChatColor.YELLOW + "Zie actuele status via: " + ChatColor.AQUA + "https://www.discord.gg/AzVCaQE");
-                    System.out.println("[HUB]" + ChatColor.DARK_RED + " stopping server...");
-                    Bukkit.shutdown();
+                if(this.getServer().getOnlinePlayers().size() != 0) {
+                    sender.sendMessage(ChatColor.GREEN + "Kicking all players...");
+                    for (Player players : this.getServer().getOnlinePlayers()) {
+                        players.kickPlayer(ChatColor.GRAY + "De server wordt momenteel herstart" + "\n" +
+                                ChatColor.BLUE + "wacht even met opnieuw joinen" + "\n" +
+                                ChatColor.YELLOW + "Zie actuele status via: " + ChatColor.AQUA + "https://www.discord.gg/AzVCaQE");
+                    }
                 }
+                System.out.println("[HUB]" + ChatColor.DARK_RED + " stopping server...");
+                Bukkit.shutdown();
             } else {
                 sender.sendMessage(ChatColor.DARK_RED + "Geen toegang tot dit commando");
             }
