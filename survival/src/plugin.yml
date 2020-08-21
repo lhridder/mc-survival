@@ -1,8 +1,8 @@
 main: nl.lucasridder.survival.Main
-name: survival
-version: 1.1
+name: Survival
+version: 1.2
 author: LucasRidder
-api-version: 1.15
+api-version: 1.16
 
 commands:
  gamemode:
@@ -14,12 +14,16 @@ commands:
   aliases: hub
  kitpvp:
   usage: "/<command>"
- lock:
-  aliases: lockdown
-  usage: "/<command> (reden)"
  setspawn:
   usage: "/<command>"
  spawn:
   usage: "/<command>"
- fly:
-  usage: "/<command> ([player])"
+ stop:
+  usage: "/<command>"
+ staff:
+  usage: "/<command>"
+ vanish:
+  aliases: v
+  usage: "/<command>"
+ set:
+  usage: "/<command> [player] [string]"
