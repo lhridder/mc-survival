@@ -11,7 +11,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
@@ -20,7 +19,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.*;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.ScoreboardManager;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -137,9 +139,6 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         //staff 4 t/m 6
         //check if player has staff permission
         if(player.isOp()) {
-            //Kills 9
-            o.getScore(ChatColor.YELLOW + "Kills: " + ChatColor.RED + kills).setScore(9);
-
             //Deaths 8
             o.getScore(ChatColor.YELLOW + "Deaths: " + ChatColor.RED + deaths).setScore(8);
 
@@ -164,9 +163,6 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
             }
 
         } else {
-            //Kills 6
-            o.getScore(ChatColor.YELLOW + "Kills: " + ChatColor.RED + kills).setScore(6);
-
             //Deaths 5
             o.getScore(ChatColor.YELLOW + "Deaths: " + ChatColor.RED + deaths).setScore(5);
         }
@@ -379,7 +375,7 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         saveConfig();
 
         //set attack speed
-        Objects.requireNonNull(player.getAttribute(Attribute.GENERIC_ATTACK_SPEED)).setBaseValue(100);
+        // Objects.requireNonNull(player.getAttribute(Attribute.GENERIC_ATTACK_SPEED)).setBaseValue(100);
     }
 
     //Leave
@@ -396,7 +392,7 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
                 if (player.isOp()) {
                     e.setQuitMessage(ChatColor.RED + name + ChatColor.DARK_RED + " -> " + ChatColor.GRAY + server);
                 } else {
-                    e.setQuitMessage(ChatColor.WHITE + name + ChatColor.DARK_RED + " -> " + ChatColor.GRAY + server);
+                    e.setQuitMessage(ChatColor.YELLOW + name + ChatColor.DARK_RED + " -> " + ChatColor.GRAY + server);
                 }
                 PlayerBoolean.remove(player);
             } else {
@@ -404,7 +400,7 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
                 if (player.isOp()) {
                     e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_RED + "-" + ChatColor.DARK_GRAY + "] " + ChatColor.RED + name);
                 } else {
-                    e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_RED + "-" + ChatColor.DARK_GRAY + "] " + ChatColor.RESET + name);
+                    e.setQuitMessage(ChatColor.DARK_GRAY + "[" + ChatColor.DARK_RED + "-" + ChatColor.DARK_GRAY + "] " + ChatColor.YELLOW + name);
                 }
             }
         } else {
@@ -553,18 +549,67 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
 
         //spawn
         if(cmd.getName().equalsIgnoreCase("spawn")) {
-            Player player = (Player) sender;
-            if (sender != null) {
+            if (!(sender instanceof Player)) {
+                Player player = (Player) sender;
                 sender.sendMessage(ChatColor.GREEN + "Aan het teleporteren...");
                 try {
-                    int x = this.getConfig().getInt("spawn.x");
-                    int y = this.getConfig().getInt("spawn.y");
-                    int z = this.getConfig().getInt("spawn.z");
-                    Location loc = new Location(player.getWorld(), x, y, z);
+                    int x = getConfig().getInt("spawn.x");
+                    int y = getConfig().getInt("spawn.y");
+                    int z = getConfig().getInt("spawn.z");
+                    Location loc = new Location(Bukkit.getWorld("world"), x, y, z);
                     player.teleport(loc);
                 } catch (Exception e1) {
                     e1.printStackTrace();
                 }
+            } else {
+                sender.sendMessage(ChatColor.RED + "Je bent geen speler");
+            }
+            return true;
+        }
+
+        //home
+        if(cmd.getName().equalsIgnoreCase("home")) {
+            if (!(sender instanceof Player)) {
+                Player player = (Player) sender;
+                UUID uuid = player.getUniqueId();
+                if(getConfig().get("player." + uuid + ".home.x") != null) {
+                    sender.sendMessage(ChatColor.GREEN + "Aan het teleporteren...");
+                    try {
+                        int x = getConfig().getInt("player." + uuid + ".home.x");
+                        int y = getConfig().getInt("player." + uuid + ".home.y");
+                        int z = getConfig().getInt("player." + uuid + ".home.z");
+                        Location loc = new Location(Bukkit.getWorld("world"), x, y, z);
+                        player.teleport(loc);
+                    } catch (Exception e1) {
+                        e1.printStackTrace();
+                    }
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Plaats eerst een home");
+                }
+            } else {
+                sender.sendMessage(ChatColor.RED + "Je bent geen speler");
+            }
+            return true;
+        }
+
+        //sethome
+        if(cmd.getName().equalsIgnoreCase("sethome")) {
+            if (!(sender instanceof Player)) {
+                Player player = (Player) sender;
+                UUID uuid = player.getUniqueId();
+
+                //sethome
+                Location loc = player.getLocation();
+                int x = loc.getBlockX();
+                int y = loc.getBlockY();
+                int z = loc.getBlockZ();
+                getConfig().set("player." + uuid + ".home.x", x);
+                getConfig().set("player." + uuid + ".home.y", y);
+                getConfig().set("player." + uuid + ".home.z", z);
+                saveConfig();
+
+                //finish off
+                sender.sendMessage(ChatColor.GREEN + "Home set!");
             } else {
                 sender.sendMessage(ChatColor.RED + "Je bent geen speler");
             }
@@ -638,6 +683,56 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
             sender.sendMessage(ChatColor.GREEN + "Gedaan.");
         }
 
+        //playtime
+        if(cmd.getName().equalsIgnoreCase("playtime")) {
+            Player player = (Player) sender;
+            //te weinig argumenten
+            if (args.length == 0) {
+                String name = player.getName();
+                //get source
+                int ptt = player.getStatistic(Statistic.PLAY_ONE_MINUTE);
+                //calculate
+                int pts = ptt / 20; //seconds
+                int ptm = pts / 60; //minutes
+                int pth = ptm / 60; //hours
+
+                int rm = ptm - (pth*60); //res minutes
+                int rs = pts - (ptm*60); //res seconds
+
+                //report
+                player.sendMessage(ChatColor.GREEN + "Survival playtime: "
+                        + ChatColor.GOLD + pth + ChatColor.GREEN + " uren, "
+                        + ChatColor.GOLD + rm + ChatColor.GREEN + " minuten en "
+                        + ChatColor.GOLD + rs + ChatColor.GREEN + " seconden");
+                return true;
+            } else {
+                //goed
+                Player target = Bukkit.getPlayer(args[0]);
+                if (target == null) {
+                    sender.sendMessage(ChatColor.RED + "Doel is niet online");
+                    return true;
+                }
+                //get source
+                int ptt = target.getStatistic(Statistic.PLAY_ONE_MINUTE);
+                String name = target.getName();
+                //calculate
+                int pts = ptt / 20; //seconds
+                int ptm = pts / 60; //minutes
+                int pth = ptm / 60; //hours
+
+                int rm = ptm - (pth*60); //res minutes
+                int rs = pts - (ptm*60); //res seconds
+
+                //report
+                player.sendMessage(ChatColor.GREEN + "Survival playtime: "
+                        + ChatColor.GOLD + name + ChatColor.GREEN + ": "
+                        + ChatColor.GOLD + pth + ChatColor.GREEN + " uren, "
+                        + ChatColor.GOLD + rm + ChatColor.GREEN + " minuten en "
+                        + ChatColor.GOLD + rs + ChatColor.GREEN + " seconden");
+                return true;
+            }
+        }
+
         return true;
     }
 
@@ -648,7 +743,13 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
         Player player = e.getPlayer();
         if (!player.isOp()) {
             //help
-            if (message.startsWith("/hub") | message.startsWith("/minigames") | message.startsWith("/lobby") | message.startsWith("/spawn") | message.startsWith("/kitpvp")) {
+            if (message.startsWith("/hub")
+                    | message.startsWith("/minigames")
+                    | message.startsWith("/playtime")
+                    | message.startsWith("/pt")
+                    | message.startsWith("/lobby")
+                    | message.startsWith("/spawn")
+                    | message.startsWith("/kitpvp")) {
                 e.setCancelled(false);
             } else if (message.startsWith("/help")) {
                 player.sendMessage(ChatColor.DARK_GRAY + "Zie hier de beschikbare commando's: ");
@@ -711,34 +812,13 @@ public class Main extends JavaPlugin implements Listener, PluginMessageListener 
     //dood
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent e) {
-
         Player player = e.getEntity();
-        String name = player.getName();
         //register death
         UUID uuidd = player.getUniqueId();
         int deaths = getConfig().getInt("player." + uuidd + ".deaths");
         int newdeaths = deaths + 1;
         getConfig().set("player." + uuidd + ".deaths", newdeaths);
 
-        EntityDamageEvent.DamageCause cause = Objects.requireNonNull(player.getLastDamageCause()).getCause();
-        if (cause.equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)) {
-            Player killer = Objects.requireNonNull(player.getKiller());
-            String killername = killer.getName();
-            e.setDeathMessage(ChatColor.GRAY + name + ChatColor.RESET + " is gehutst door " + ChatColor.GRAY + killername + ChatColor.RED + "!");
-
-            //register kill
-            UUID uuidk = killer.getUniqueId();
-            int kills = getConfig().getInt("player." + uuidk + ".kills");
-            int newkills = kills + 1;
-            getConfig().set("player." + uuidk + ".kills", newkills);
-
-        } else if (cause.equals(EntityDamageEvent.DamageCause.BLOCK_EXPLOSION)) {
-            e.setDeathMessage(ChatColor.GRAY + name + ChatColor.RESET + " is opgeblazen" + ChatColor.RED + "!");
-        } else if (cause.equals(EntityDamageEvent.DamageCause.FALL)) {
-            e.setDeathMessage(ChatColor.GRAY + name + ChatColor.RESET + " is gevallen" + ChatColor.RED + "!");
-        } else {
-            e.setDeathMessage(ChatColor.GRAY + name + ChatColor.RESET + " is gestorven" + ChatColor.RED + "!");
-        }
     }
 
     //Interact

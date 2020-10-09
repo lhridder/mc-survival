@@ -1,7 +1,8 @@
 main: nl.lucasridder.survival.Main
-name: Survival
-version: 1.2
+name: Lucas-Survival
+version: 1.3
 author: LucasRidder
+website: lucasridder.nl
 api-version: 1.16
 
 commands:
@@ -22,8 +23,15 @@ commands:
   usage: "/<command>"
  staff:
   usage: "/<command>"
+ home:
+  usage: "/<command>"
+ sethome:
+  usage: "/<command>"
  vanish:
   aliases: v
   usage: "/<command>"
  set:
   usage: "/<command> [player] [string]"
+ playtime:
+  aliases: pt
+  usage: "/<command> (player)"
